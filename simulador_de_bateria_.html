@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Batería de Flujo Redox Orgánico | UANL FIME - Equipo 07</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#080d1a',
+                        cardbg: '#0f172a',
+                        panelbg: '#131c31',
+                        bordercolor: '#1e293b'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #080d1a; color: #f8fafc; }
+        .font-mono { font-family: 'Fira Code', monospace; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden select-none">
+
+    <!-- HEADER UANL FIME -->
+    <header class="bg-[#0f172a] border-b border-[#1e293b] px-3.5 py-2 flex items-center justify-between shrink-0 shadow-lg">
+        <div class="flex items-center space-x-3">
+            <span class="bg-[#065f46] text-[#6ee7b7] text-[11px] font-bold px-2 py-0.5 rounded shadow">
+                UANL • FIME • PIA QUÍMICA GENERAL
+            </span>
+            <h1 class="text-xs md:text-sm font-bold text-[#f8fafc] tracking-tight">
+                Simulador de Batería de Flujo Redox Orgánico (Quinonas / Lignina) — Equipo 07
+            </h1>
+        </div>
+        <div class="text-right hidden md:block">
+            <span class="text-[11px] font-mono text-[#94a3b8]">Grupo 051 • Dra. Laura Imelda García Ortiz</span>
+        </div>
+    </header>
+
+    <!-- KPI BAR -->
+    <section class="bg-[#080d1a] px-3 py-1.5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 shrink-0">
+        <div class="bg-[#0f172a] border border-[#1e293b] rounded p-2 shadow">
+            <div class="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wider">MODO DEL SISTEMA</div>
+            <div id="kpi-mode-val" class="text-xs md:text-sm font-bold font-mono text-[#38bdf8] truncate">EN ESPERA (STANDBY)</div>
+            <div id="kpi-mode-sub" class="text-[9px] text-[#cbd5e1] truncate">Bombas: APAGADAS</div>
+        </div>
+        <div class="bg-[#0f172a] border border-[#1e293b] rounded p-2 shadow">
+            <div class="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wider">VOLTAJE CELDA (RFcell)</div>
+            <div id="kpi-volt-val" class="text-xs md:text-sm font-bold font-mono text-[#22d3ee] truncate">1.214 V</div>
+            <div id="kpi-volt-sub" class="text-[9px] text-[#cbd5e1] truncate">Nernst: 1.214 V</div>
+        </div>
+        <div class="bg-[#0f172a] border border-[#1e293b] rounded p-2 shadow">
+            <div class="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wider">ESTADO DE CARGA (SoC)</div>
+            <div id="kpi-soc-val" class="text-xs md:text-sm font-bold font-mono text-[#34d399] truncate">50.0 %</div>
+            <div id="kpi-soc-sub" class="text-[9px] text-[#cbd5e1] truncate">Corriente: 0.00 A</div>
+        </div>
+        <div class="bg-[#0f172a] border border-[#1e293b] rounded p-2 shadow">
+            <div class="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wider">DEGRADACIÓN CATOLITO (+)</div>
+            <div id="kpi-degcat-val" class="text-xs md:text-sm font-bold font-mono text-[#fbbf24] truncate">0.00 %</div>
+            <div id="kpi-degcat-sub" class="text-[9px] text-[#cbd5e1] truncate">Pureza: 100.0%</div>
+        </div>
+        <div class="bg-[#0f172a] border border-[#1e293b] rounded p-2 shadow">
+            <div class="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wider">DEGRADACIÓN ANOLITO (-)</div>
+            <div id="kpi-degano-val" class="text-xs md:text-sm font-bold font-mono text-[#c084fc] truncate">0.00 %</div>
+            <div id="kpi-degano-sub" class="text-[9px] text-[#cbd5e1] truncate">Pureza: 100.0%</div>
+        </div>
+        <div class="bg-[#0f172a] border border-[#1e293b] rounded p-2 shadow">
+            <div class="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wider">CICLADO (META 50)</div>
+            <div id="kpi-cycles-val" class="text-xs md:text-sm font-bold font-mono text-[#2dd4bf] truncate">Ciclo 0 / 50</div>
+            <div id="kpi-cycles-sub" class="text-[9px] text-[#cbd5e1] truncate">Retención: 100.0%</div>
+        </div>
+    </section>
+
+    <!-- MAIN WORKSPACE -->
+    <main class="flex-1 flex flex-col lg:flex-row p-2.5 gap-2.5 overflow-hidden">
+        
+        <!-- CANVAS CONTAINER (LEFT) -->
+        <div class="flex-1 bg-[#0f172a] border border-[#1e293b] rounded p-1 flex flex-col overflow-hidden relative shadow-2xl min-h-[400px]">
+            <canvas id="simCanvas" class="w-full h-full bg-[#070b16] rounded block"></canvas>
+        </div>
+
+        <!-- CONTROL PANEL (RIGHT) -->
+        <aside class="w-full lg:w-[385px] bg-[#0f172a] border border-[#1e293b] rounded flex flex-col overflow-hidden shrink-0 shadow-2xl">
+            <div class="flex-1 overflow-y-auto p-3 space-y-3">
+
+                <!-- SECTION 1: TANK CAPACITIES & LIQUIDS -->
+                <div class="bg-[#131c31] border border-[#1e293b] rounded p-2.5 space-y-2">
+                    <h2 class="text-xs font-bold text-[#38bdf8] uppercase tracking-wide flex items-center gap-1.5">
+                        <span>💧</span> CAPACIDAD DE LÍQUIDO: CATOLITO Y ANOLITO
+                    </h2>
+                    <p class="text-[10px] text-[#94a3b8]">Escribe la cantidad total de líquido (L) para cada tanque:</p>
+                    
+                    <!-- Catolito Input Box -->
+                    <div class="bg-[#090d16] border border-[#1e293b] rounded p-2 space-y-1">
+                        <div class="flex justify-between items-center text-[11px]">
+                            <span class="font-bold text-[#fbbf24]">Cantidad Total Catolito (+):</span>
+                            <span id="lbl-vol-cat-val" class="font-mono font-bold text-[#fef08a] text-[10px]">120.0 L (60% Nivel)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="input-vol-cat" value="120" min="10" max="5000" step="5"
+                                class="w-full bg-[#1e293b] text-[#fef08a] font-mono text-xs px-2 py-1 rounded border border-[#334155] text-right focus:outline-none focus:border-[#38bdf8]">
+                            <span class="text-[11px] font-mono font-bold text-[#cbd5e1]">Litros (L)</span>
+                        </div>
+                    </div>
+
+                    <!-- Anolito Input Box -->
+                    <div class="bg-[#090d16] border border-[#1e293b] rounded p-2 space-y-1">
+                        <div class="flex justify-between items-center text-[11px]">
+                            <span class="font-bold text-[#c084fc]">Cantidad Total Anolito (-):</span>
+                            <span id="lbl-vol-ano-val" class="font-mono font-bold text-[#e9d5ff] text-[10px]">120.0 L (60% Nivel)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="input-vol-ano" value="120" min="10" max="5000" step="5"
+                                class="w-full bg-[#1e293b] text-[#e9d5ff] font-mono text-xs px-2 py-1 rounded border border-[#334155] text-right focus:outline-none focus:border-[#38bdf8]">
+                            <span class="text-[11px] font-mono font-bold text-[#cbd5e1]">Litros (L)</span>
+                        </div>
+                    </div>
+
+                    <button id="btn-apply-vols" class="w-full bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold text-[11px] py-1.5 px-3 rounded shadow transition">
+                        ✔ Aplicar Cantidades Totales Escritas
+                    </button>
+
+                    <!-- Concentration Slider -->
+                    <div class="pt-0.5">
+                        <div class="flex justify-between items-center text-[11px] mb-1">
+                            <span class="text-[#cbd5e1]">Concentración Activa (C):</span>
+                            <span id="lbl-conc-val" class="font-mono font-bold text-[#38bdf8]">1.50 mol/L</span>
+                        </div>
+                        <input type="range" id="slider-conc" min="0.5" max="2.5" step="0.1" value="1.5"
+                            class="w-full accent-[#38bdf8] bg-[#090d16] h-1.5 rounded cursor-pointer">
+                    </div>
+
+                    <!-- Energy & Balance Summary -->
+                    <div class="bg-[#090d16] border border-[#1e293b] rounded p-2 space-y-0.5 font-mono text-[10px]">
+                        <div id="lbl-energy-wh" class="text-[#34d399] font-bold">Capacidad Total: 5,980 Wh</div>
+                        <div id="lbl-limiting-tank" class="text-[#38bdf8]">Balance Hidráulico: Balanceado (120 L)</div>
+                    </div>
+
+                    <button id="btn-equal-tanks" class="w-full bg-[#1e293b] hover:bg-[#334155] text-[#38bdf8] font-bold text-[11px] py-1.5 px-3 rounded border border-[#334155] transition">
+                        ⚖ Igualar Capacidad de Ambos Tanques (120 L)
+                    </button>
+                </div>
+
+                <!-- SECTION 2: CURRENT CONNECTOR & MODES -->
+                <div class="bg-[#131c31] border border-[#1e293b] rounded p-2.5 space-y-2">
+                    <h2 class="text-xs font-bold text-[#34d399] uppercase tracking-wide flex items-center gap-1.5">
+                        <span>⚡</span> CONECTOR DE CORRIENTE Y BOMBAS
+                    </h2>
+                    <div class="grid grid-cols-1 gap-1.5">
+                        <button id="btn-mode-charge" class="w-full bg-[#059669] hover:bg-[#10b981] text-white font-bold text-[11px] py-2 px-3 rounded shadow transition flex items-center justify-center gap-2">
+                            <span>⚡</span> MODO CARGA (Conectar Fuente DC a Batería)
+                        </button>
+                        <button id="btn-mode-discharge" class="w-full bg-[#d97706] hover:bg-[#f59e0b] text-white font-bold text-[11px] py-2 px-3 rounded shadow transition flex items-center justify-center gap-2">
+                            <span>💡</span> MODO DESCARGA (Entregar Energía a Carga)
+                        </button>
+                        <button id="btn-mode-autocycle" class="w-full bg-[#0284c7] hover:bg-[#38bdf8] text-white font-bold text-[11px] py-2 px-3 rounded shadow transition flex items-center justify-center gap-2">
+                            <span>🔄</span> AUTO-CICLADO (Prueba Experimental 50 Ciclos)
+                        </button>
+                    </div>
+                    <div class="flex gap-1.5 pt-0.5">
+                        <button id="btn-mode-idle" class="flex-1 bg-[#334155] hover:bg-[#475569] text-[#e2e8f0] font-bold text-[11px] py-1.5 px-2 rounded transition">
+                            ⏸ Pausar / Apagar
+                        </button>
+                        <button id="btn-regenerate" class="flex-1 bg-[#881337] hover:bg-[#9f1239] text-[#fecdd3] font-bold text-[11px] py-1.5 px-2 rounded transition">
+                            🧪 Regenerar Líquidos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SECTION 3: ELECTROCHEMICAL PARAMETERS -->
+                <div class="bg-[#131c31] border border-[#1e293b] rounded p-2.5 space-y-2">
+                    <h2 class="text-xs font-bold text-[#fbbf24] uppercase tracking-wide flex items-center gap-1.5">
+                        <span>🎛</span> PARÁMETROS ELECTROQUÍMICOS Y BOMBAS
+                    </h2>
+
+                    <div>
+                        <div class="flex justify-between items-center text-[11px] mb-1">
+                            <span class="text-[#cbd5e1]">Corriente del Conector (I):</span>
+                            <span id="lbl-curr-val" class="font-mono font-bold text-[#34d399]">2.50 A (50 mA/cm²)</span>
+                        </div>
+                        <input type="range" id="slider-curr" min="0.5" max="5.0" step="0.25" value="2.5"
+                            class="w-full accent-[#34d399] bg-[#090d16] h-1.5 rounded cursor-pointer">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center text-[11px] mb-1">
+                            <span class="text-[#cbd5e1]">Caudal Bombas Hidráulicas (Q):</span>
+                            <span id="lbl-flow-val" class="font-mono font-bold text-[#22d3ee]">60 mL/min</span>
+                        </div>
+                        <input type="range" id="slider-flow" min="20" max="120" step="5" value="60"
+                            class="w-full accent-[#22d3ee] bg-[#090d16] h-1.5 rounded cursor-pointer">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center text-[11px] mb-1">
+                            <span class="text-[#cbd5e1]">Factor Degradación de Líquidos:</span>
+                            <span id="lbl-deg-val" class="font-mono font-bold text-[#fbbf24]">5x (Visible)</span>
+                        </div>
+                        <input type="range" id="slider-deg" min="1" max="30" step="1" value="5"
+                            class="w-full accent-[#fbbf24] bg-[#090d16] h-1.5 rounded cursor-pointer">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center text-[11px] mb-1">
+                            <span class="text-[#cbd5e1]">Velocidad de Simulación:</span>
+                            <span id="lbl-spd-val" class="font-mono font-bold text-[#c084fc]">4x</span>
+                        </div>
+                        <input type="range" id="slider-spd" min="1" max="25" step="1" value="4"
+                            class="w-full accent-[#c084fc] bg-[#090d16] h-1.5 rounded cursor-pointer">
+                    </div>
+
+                    <button id="btn-stress" class="w-full bg-[#451a03] hover:bg-[#78350f] text-[#fcd34d] font-bold text-[11px] py-1.5 px-3 rounded border border-[#78350f] transition">
+                        + Simular Pico de Desgaste Químico (Catolito y Anolito)
+                    </button>
+                </div>
+
+                <!-- SECTION 4: COLORIMETRY & BMS DIAGNOSTICS -->
+                <div class="bg-[#131c31] border border-[#1e293b] rounded p-2.5 space-y-2">
+                    <h2 class="text-xs font-bold text-[#a7f3d0] uppercase tracking-wide flex items-center gap-1.5">
+                        <span>🔬</span> COLORIMETRÍA Y TELEMETRÍA BMS
+                    </h2>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-[#090d16] border border-[#1e293b] rounded p-1.5 flex items-center gap-2">
+                            <div id="swatch-cat" class="w-5 h-5 rounded border border-[#475569] bg-[#d97706] shrink-0"></div>
+                            <div id="lbl-swatch-cat" class="text-[9px] font-mono text-[#e2e8f0] leading-tight">Catolito (+)<br>Limpio</div>
+                        </div>
+                        <div class="bg-[#090d16] border border-[#1e293b] rounded p-1.5 flex items-center gap-2">
+                            <div id="swatch-ano" class="w-5 h-5 rounded border border-[#475569] bg-[#7c3aed] shrink-0"></div>
+                            <div id="lbl-swatch-ano" class="text-[9px] font-mono text-[#e2e8f0] leading-tight">Anolito (-)<br>Limpio</div>
+                        </div>
+                    </div>
+
+                    <div id="lbl-diag-table" class="bg-[#090d16] border border-[#1e293b] rounded p-2 font-mono text-[10px] text-[#cbd5e1] space-y-0.5 whitespace-pre-line">
+                        Potencial Equilibrio (Nernst): 1.214 V
+                        Caída por Degradación (ΔVdeg): -0.000 V
+                        Sobrepotencial Óhmico/Bombas : +0.070 V
+                        Potencia Eléctrica en PMS    :  0.00 W
+                        Densidad Energía Estimada    : 29.5 Wh/L
+                        Eficiencia Coulómbica (ηC)   : 99.1 %
+                    </div>
+
+                    <div id="lbl-bms-msg" class="bg-[#064e3b] border border-[#047857] rounded p-2 text-[11px] text-[#a7f3d0] font-sans">
+                        BMS Supervisor: Sistema en espera. Selecciona Modo Carga o Descarga.
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+    </main>
+
+    <!-- FULL REPLICA SIMULATION ENGINE -->
+    <script>
+        class SimuladorBateriaRedoxOrg {
+            constructor() {
+                this.mode = "IDLE";
+                this.auto_dir = 1;
+                this.soc = 50.0;
+                this.voltage = 1.214;
+                this.v_nernst = 1.214;
+                this.v_deg_loss = 0.0;
+                this.v_overpot = 0.0;
+                this.deg_cat = 0.0;
+                this.deg_ano = 0.0;
+                this.cycles = 0;
+                this.target_cycles = 50;
+                this.pump_angle = 0.0;
+                this.anim_phase = 0.0;
+
+                this.vol_catolito = 120.0;
+                this.vol_anolito = 120.0;
+                this.conc_molar = 1.5;
+                this.current_amp = 2.5;
+                this.flow_rate = 60.0;
+                this.deg_factor = 5.0;
+                this.sim_speed = 4.0;
+
+                this.max_time_pts = 110;
+                this.time_history = Array.from({length: 30}, () => ({v: 1.214, soc: 50.0}));
+                this.cycle_history = [[0, 100.0, 84.2]];
+
+                this.precip_seeds = [];
+                let rnd_seed = 7;
+                for(let i=0; i<35; i++) {
+                    let rx = Math.abs(Math.sin(rnd_seed++));
+                    let ry = Math.abs(Math.cos(rnd_seed++));
+                    let rr = 2.0 + Math.abs(Math.sin(rnd_seed++)) * 2.0;
+                    this.precip_seeds.push([0.08 + rx*0.84, 0.10 + ry*0.80, rr]);
+                }
+
+                this.initDOM();
+                this.initEvents();
+                this.startLoop();
+            }
+
+            initDOM() {
+                this.canvas = document.getElementById("simCanvas");
+                this.ctx = this.canvas.getContext("2d");
+
+                this.inputCat = document.getElementById("input-vol-cat");
+                this.inputAno = document.getElementById("input-vol-ano");
+                this.sliderConc = document.getElementById("slider-conc");
+                this.sliderCurr = document.getElementById("slider-curr");
+                this.sliderFlow = document.getElementById("slider-flow");
+                this.sliderDeg = document.getElementById("slider-deg");
+                this.sliderSpd = document.getElementById("slider-spd");
+
+                this.lblVolCatVal = document.getElementById("lbl-vol-cat-val");
+                this.lblVolAnoVal = document.getElementById("lbl-vol-ano-val");
+                this.lblConcVal = document.getElementById("lbl-conc-val");
+                this.lblEnergyWh = document.getElementById("lbl-energy-wh");
+                this.lblLimitingTank = document.getElementById("lbl-limiting-tank");
+                this.lblCurrVal = document.getElementById("lbl-curr-val");
+                this.lblFlowVal = document.getElementById("lbl-flow-val");
+                this.lblDegVal = document.getElementById("lbl-deg-val");
+                this.lblSpdVal = document.getElementById("lbl-spd-val");
+                this.swatchCat = document.getElementById("swatch-cat");
+                this.swatchAno = document.getElementById("swatch-ano");
+                this.lblSwatchCat = document.getElementById("lbl-swatch-cat");
+                this.lblSwatchAno = document.getElementById("lbl-swatch-ano");
+                this.lblDiagTable = document.getElementById("lbl-diag-table");
+                this.lblBmsMsg = document.getElementById("lbl-bms-msg");
+
+                this.kpiModeVal = document.getElementById("kpi-mode-val");
+                this.kpiModeSub = document.getElementById("kpi-mode-sub");
+                this.kpiVoltVal = document.getElementById("kpi-volt-val");
+                this.kpiVoltSub = document.getElementById("kpi-volt-sub");
+                this.kpiSocVal = document.getElementById("kpi-soc-val");
+                this.kpiSocSub = document.getElementById("kpi-soc-sub");
+                this.kpiDegCatVal = document.getElementById("kpi-degcat-val");
+                this.kpiDegCatSub = document.getElementById("kpi-degcat-sub");
+                this.kpiDegAnoVal = document.getElementById("kpi-degano-val");
+                this.kpiDegAnoSub = document.getElementById("kpi-degano-sub");
+                this.kpiCyclesVal = document.getElementById("kpi-cycles-val");
+                this.kpiCyclesSub = document.getElementById("kpi-cycles-sub");
+            }
+
+            initEvents() {
+                const leerVolumenes = () => {
+                    let vc = parseFloat(this.inputCat.value);
+                    if(!isNaN(vc) && vc > 0) this.vol_catolito = Math.max(1.0, Math.min(5000.0, vc));
+                    let va = parseFloat(this.inputAno.value);
+                    if(!isNaN(va) && va > 0) this.vol_anolito = Math.max(1.0, Math.min(5000.0, va));
+                };
+
+                this.inputCat.addEventListener("input", leerVolumenes);
+                this.inputAno.addEventListener("input", leerVolumenes);
+
+                document.getElementById("btn-apply-vols").addEventListener("click", () => {
+                    leerVolumenes();
+                    this.inputCat.value = this.vol_catolito;
+                    this.inputAno.value = this.vol_anolito;
+                    this.setBmsMsg(`BMS Supervisor: Capacidad actualizada a ${this.vol_catolito.toFixed(1)} L (Catolito) y ${this.vol_anolito.toFixed(1)} L (Anolito).`);
+                });
+
+                this.sliderConc.addEventListener("input", (e) => { this.conc_molar = parseFloat(e.target.value); });
+                this.sliderCurr.addEventListener("input", (e) => { this.current_amp = parseFloat(e.target.value); });
+                this.sliderFlow.addEventListener("input", (e) => { this.flow_rate = parseFloat(e.target.value); });
+                this.sliderDeg.addEventListener("input", (e) => { this.deg_factor = parseFloat(e.target.value); });
+                this.sliderSpd.addEventListener("input", (e) => { this.sim_speed = parseFloat(e.target.value); });
+
+                document.getElementById("btn-equal-tanks").addEventListener("click", () => {
+                    this.vol_catolito = 120.0;
+                    this.vol_anolito = 120.0;
+                    this.inputCat.value = "120";
+                    this.inputAno.value = "120";
+                    this.setBmsMsg("BMS Supervisor: Capacidad de líquido igualada a 120 L en ambos tanques.");
+                });
+
+                document.getElementById("btn-mode-charge").addEventListener("click", () => { this.setMode("CHARGE"); });
+                document.getElementById("btn-mode-discharge").addEventListener("click", () => { this.setMode("DISCHARGE"); });
+                document.getElementById("btn-mode-autocycle").addEventListener("click", () => { this.setMode("AUTOCYCLE"); });
+                document.getElementById("btn-mode-idle").addEventListener("click", () => { this.setMode("IDLE"); });
+
+                document.getElementById("btn-regenerate").addEventListener("click", () => {
+                    this.mode = "IDLE";
+                    this.soc = 50.0;
+                    this.deg_cat = 0.0;
+                    this.deg_ano = 0.0;
+                    this.cycles = 0;
+                    this.cycle_history = [[0, 100.0, 84.2]];
+                    this.setBmsMsg("BMS Supervisor: Electrolitos purificados y regenerados al 100% de pureza.");
+                });
+
+                document.getElementById("btn-stress").addEventListener("click", () => {
+                    this.deg_cat = Math.min(60.0, this.deg_cat + 4.5);
+                    this.deg_ano = Math.min(60.0, this.deg_ano + 4.0);
+                    let ret = Math.max(20.0, 100.0 - (this.deg_cat + this.deg_ano) * 0.85);
+                    let eff = Math.max(52.0, 84.5 - (this.deg_cat + this.deg_ano) * 0.32);
+                    this.cycles = Math.min(50, this.cycles + 2);
+                    this.cycle_history.push([this.cycles, ret, eff]);
+                    this.setBmsMsg("Alerta BMS: Simulación de estrés oxidativo aplicada.");
+                });
+
+                window.addEventListener("resize", () => { this.resizeCanvas(); });
+                this.resizeCanvas();
+            }
+
+            resizeCanvas() {
+                const parent = this.canvas.parentElement;
+                this.canvas.width = parent.clientWidth - 2;
+                this.canvas.height = parent.clientHeight - 2;
+                if(this.canvas.width <= 0 || this.canvas.height <= 0) {
+                    this.canvas.width = 800;
+                    this.canvas.height = 500;
+                }
+            }
+
+            setMode(newMode) {
+                this.mode = newMode;
+                if(newMode === "AUTOCYCLE") {
+                    this.auto_dir = this.soc < 92.0 ? 1 : -1;
+                }
+            }
+
+            setBmsMsg(msg) {
+                this.lblBmsMsg.innerText = msg;
+            }
+
+            getActiveMode() {
+                if(this.mode === "AUTOCYCLE") {
+                    return this.auto_dir === 1 ? "CHARGE" : "DISCHARGE";
+                }
+                return this.mode;
+            }
+
+            mixRgb(rgb1, rgb2, t) {
+                t = Math.max(0.0, Math.min(1.0, t));
+                return [
+                    Math.round(rgb1[0] + (rgb2[0] - rgb1[0]) * t),
+                    Math.round(rgb1[1] + (rgb2[1] - rgb1[1]) * t),
+                    Math.round(rgb1[2] + (rgb2[2] - rgb1[2]) * t)
+                ];
+            }
+
+            rgbToHex(rgb) {
+                return "#" + rgb.map(x => x.toString(16).padStart(2, '0')).join('');
+            }
+
+            getElectrolyteColors() {
+                let s = this.soc / 100.0;
+                let catLimpio = this.mixRgb([245, 190, 65], [215, 55, 25], s);
+                let catFinal = this.mixRgb(catLimpio, [48, 30, 18], Math.min(0.88, this.deg_cat / 45.0));
+                let anoLimpio = this.mixRgb([125, 55, 220], [16, 195, 125], s);
+                let anoFinal = this.mixRgb(anoLimpio, [45, 52, 44], Math.min(0.88, this.deg_ano / 45.0));
+                return [this.rgbToHex(catFinal), this.rgbToHex(anoFinal)];
+            }
+
+            stepPhysics() {
+                let dt = 0.04 * this.sim_speed;
+                let corriente = this.current_amp;
+                let caudal = this.flow_rate;
+                let mult_deg = this.deg_factor;
+                let v_cat = this.vol_catolito;
+                let v_ano = this.vol_anolito;
+                let conc = this.conc_molar;
+
+                let activoMode = this.getActiveMode();
+                let degTotal = this.deg_cat + this.deg_ano;
+                let retencionCap = Math.max(20.0, 100.0 - degTotal * 0.85);
+
+                let volLimitante = Math.min(v_cat, v_ano);
+                let escalaVolumen = (120.0 / Math.max(20.0, volLimitante)) * (1.5 / conc);
+
+                if(activoMode === "CHARGE" || activoMode === "DISCHARGE") {
+                    this.pump_angle = (this.pump_angle + 14.0 * (caudal / 60.0)) % 360.0;
+                    this.anim_phase = (this.anim_phase + 0.045 * Math.sqrt(this.sim_speed)) % 1.0;
+
+                    let deltaSoc = (corriente * 0.45 * dt) * (100.0 / retencionCap) * escalaVolumen;
+                    let estresVolCat = Math.pow(120.0 / Math.max(30.0, v_cat), 0.35);
+                    let estresVolAno = Math.pow(120.0 / Math.max(30.0, v_ano), 0.35);
+                    let tasaDegBase = 0.005 * mult_deg * (corriente / 2.5) * dt;
+
+                    if(activoMode === "CHARGE") {
+                        this.soc = Math.min(100.0, this.soc + deltaSoc);
+                        let estresAltoSoc = this.soc > 82.0 ? 1.65 : 1.0;
+                        this.deg_cat = Math.min(60.0, this.deg_cat + tasaDegBase * 1.18 * estresAltoSoc * estresVolCat);
+                        this.deg_ano = Math.min(60.0, this.deg_ano + tasaDegBase * 0.92 * estresVolAno);
+
+                        if(this.soc >= 99.4) {
+                            if(this.mode === "AUTOCYCLE") {
+                                this.auto_dir = -1;
+                            } else {
+                                this.mode = "IDLE";
+                                this.setBmsMsg("BMS Supervisor: Batería cargada al 100%. Bombas detenidas automáticamente.");
+                            }
+                        }
+                    } else if(activoMode === "DISCHARGE") {
+                        this.soc = Math.max(0.0, this.soc - deltaSoc);
+                        let estresBajoSoc = this.soc < 18.0 ? 1.55 : 1.0;
+                        this.deg_cat = Math.min(60.0, this.deg_cat + tasaDegBase * 0.94 * estresVolCat);
+                        this.deg_ano = Math.min(60.0, this.deg_ano + tasaDegBase * 1.22 * estresBajoSoc * estresVolAno);
+
+                        if(this.soc <= 0.8) {
+                            if(this.mode === "AUTOCYCLE") {
+                                this.cycles += 1;
+                                let nuevaRet = Math.max(20.0, 100.0 - (this.deg_cat + this.deg_ano) * 0.85);
+                                let nuevaEff = Math.max(52.0, 84.5 - (this.deg_cat + this.deg_ano) * 0.32 - (corriente - 2.0) * 1.4);
+                                this.cycle_history.push([this.cycles, nuevaRet, nuevaEff]);
+
+                                if(this.cycles >= this.target_cycles) {
+                                    this.mode = "IDLE";
+                                    this.setBmsMsg("BMS Supervisor: Prueba de 50 ciclos finalizada.");
+                                } else {
+                                    this.auto_dir = 1;
+                                }
+                            } else {
+                                this.mode = "IDLE";
+                                this.setBmsMsg("BMS Supervisor: Descarga completada.");
+                            }
+                        }
+                    }
+                }
+
+                let sClamped = Math.max(0.015, Math.min(0.985, this.soc / 100.0));
+                this.v_nernst = 1.24 + 0.052 * Math.log(sClamped / (1.0 - sClamped));
+                this.v_deg_loss = ((this.deg_cat + this.deg_ano) / 100.0) * 0.31;
+
+                let factorFlujo = Math.max(0.3, caudal / 60.0);
+                let rInterna = (0.028 / Math.pow(factorFlujo, 0.35)) + ((this.deg_cat + this.deg_ano) / 100.0) * 0.045;
+
+                if(activoMode === "CHARGE") {
+                    this.v_overpot = +corriente * rInterna;
+                    this.voltage = Math.min(1.62, this.v_nernst + this.v_overpot - this.v_deg_loss * 0.35);
+                } else if(activoMode === "DISCHARGE") {
+                    this.v_overpot = -corriente * rInterna;
+                    this.voltage = Math.max(0.62, this.v_nernst + this.v_overpot - this.v_deg_loss);
+                } else {
+                    this.v_overpot = 0.0;
+                    this.voltage = Math.max(0.72, this.v_nernst - this.v_deg_loss * 0.65);
+                }
+
+                if(activoMode !== "IDLE" || Math.random() < 0.2) {
+                    this.time_history.push({v: this.voltage, soc: this.soc});
+                    if(this.time_history.length > this.max_time_pts) this.time_history.shift();
+                }
+            }
+
+            updateUI() {
+                let activoMode = this.getActiveMode();
+                let [hexCat, hexAno] = this.getElectrolyteColors();
+
+                let v_cat = this.vol_catolito;
+                let v_ano = this.vol_anolito;
+                let capMaxRef = Math.max(200.0, v_cat, v_ano);
+                let pctCat = Math.round((v_cat / capMaxRef) * 100);
+                let pctAno = Math.round((v_ano / capMaxRef) * 100);
+
+                let conc = this.conc_molar;
+                let corriente = this.current_amp;
+                let caudal = Math.round(this.flow_rate);
+
+                this.lblVolCatVal.innerText = `${v_cat.toFixed(1)} L (${pctCat}% Nivel)`;
+                this.lblVolAnoVal.innerText = `${v_ano.toFixed(1)} L (${pctAno}% Nivel)`;
+                this.lblConcVal.innerText = `${conc.toFixed(2)} mol/L`;
+                this.lblCurrVal.innerText = `${corriente.toFixed(2)} A (${Math.round(corriente * 20)} mA/cm²)`;
+                this.lblFlowVal.innerText = `${caudal} mL/min`;
+                this.lblDegVal.innerText = `${Math.round(this.deg_factor)}x`;
+                this.lblSpdVal.innerText = `${Math.round(this.sim_speed)}x`;
+
+                let degTotal = this.deg_cat + this.deg_ano;
+                let retencion = Math.max(20.0, 100.0 - degTotal * 0.85);
+                let volLim = Math.min(v_cat, v_ano);
+                let energiaWh = Math.round(volLim * (conc / 1.5) * 49.8 * (retencion / 100.0));
+
+                this.lblEnergyWh.innerText = `Capacidad Total: ${energiaWh.toLocaleString()} Wh`;
+                if(Math.abs(v_cat - v_ano) < 1) {
+                    this.lblLimitingTank.innerText = `Balance Hidráulico: Balanceado (${volLim} L)`;
+                } else if(v_cat < v_ano) {
+                    this.lblLimitingTank.innerText = `Reactivo Limitante: Catolito (${v_cat} L)`;
+                } else {
+                    this.lblLimitingTank.innerText = `Reactivo Limitante: Anolito (${v_ano} L)`;
+                }
+
+                if(activoMode === "CHARGE") {
+                    let txt = this.mode === "AUTOCYCLE" ? "AUTO-CICLADO (CARGA)" : "MODO CARGA ACTIVO";
+                    this.kpiModeVal.innerText = txt;
+                    this.kpiModeSub.innerText = `Bombas: ON (${caudal} mL/m)`;
+                } else if(activoMode === "DISCHARGE") {
+                    let txt = this.mode === "AUTOCYCLE" ? "AUTO-CICLADO (DESCARGA)" : "MODO DESCARGA ACTIVO";
+                    this.kpiModeVal.innerText = txt;
+                    this.kpiModeSub.innerText = `Bombas: ON (${caudal} mL/m)`;
+                } else {
+                    this.kpiModeVal.innerText = "EN ESPERA (STANDBY)";
+                    this.kpiModeSub.innerText = "Bombas: APAGADAS (0 mL/min)";
+                }
+
+                let deltaStr = activoMode === "CHARGE" ? "▲ Subiendo" : (activoMode === "DISCHARGE" ? "▼ Disminuyendo" : "OCV");
+                this.kpiVoltVal.innerText = `${this.voltage.toFixed(3)} V (${deltaStr})`;
+                this.kpiVoltSub.innerText = `Nernst: ${this.v_nernst.toFixed(3)} V | Pérdida: -${this.v_deg_loss.toFixed(3)} V`;
+
+                let iStr = activoMode === "CHARGE" ? `+${corriente.toFixed(2)} A` : (activoMode === "DISCHARGE" ? `-${corriente.toFixed(2)} A` : "0.00 A");
+                this.kpiSocVal.innerText = `${this.soc.toFixed(1)} %`;
+                this.kpiSocSub.innerText = `Corriente Conector: ${iStr}`;
+
+                this.kpiDegCatVal.innerText = `${this.deg_cat.toFixed(2)} %`;
+                this.kpiDegCatSub.innerText = `Pureza Catolito: ${(100.0 - this.deg_cat).toFixed(1)}%`;
+
+                this.kpiDegAnoVal.innerText = `${this.deg_ano.toFixed(2)} %`;
+                this.kpiDegAnoSub.innerText = `Pureza Anolito: ${(100.0 - this.deg_ano).toFixed(1)}%`;
+
+                let eficienciaE = Math.max(52.0, 84.5 - degTotal * 0.32 - (corriente - 2.0) * 1.4);
+                this.kpiCyclesVal.innerText = `Ciclo ${this.cycles} / 50 (η=${eficienciaE.toFixed(1)}%)`;
+                this.kpiCyclesSub.innerText = `Retención Capacidad: ${retencion.toFixed(1)}%`;
+
+                this.swatchCat.style.backgroundColor = hexCat;
+                this.swatchAno.style.backgroundColor = hexAno;
+                let turbCat = this.deg_cat > 12 ? "Turbio" : "Limpio";
+                let turbAno = this.deg_ano > 12 ? "Turbio" : "Limpio";
+                this.lblSwatchCat.innerHTML = `Catolito (+)<br>${turbCat} (${this.deg_cat.toFixed(1)}%)`;
+                this.lblSwatchAno.innerHTML = `Anolito (-)<br>${turbAno} (${this.deg_ano.toFixed(1)}%)`;
+
+                let densEnergia = 29.5 * (conc / 1.5) * (retencion / 100.0) * (this.voltage / 1.24);
+                let effCoulomb = Math.max(88.0, 99.1 - degTotal * 0.12);
+                let potenciaW = activoMode === "IDLE" ? 0.0 : this.voltage * corriente;
+
+                this.lblDiagTable.innerText = 
+                    `Potencial Equilibrio (Nernst): ${this.v_nernst.toFixed(3)} V\n` +
+                    `Caída por Degradación (ΔVdeg): -${this.v_deg_loss.toFixed(3)} V\n` +
+                    `Sobrepotencial Óhmico/Bombas : ${this.v_overpot >= 0 ? '+' : ''}${this.v_overpot.toFixed(3)} V\n` +
+                    `Potencia Eléctrica en PMS    : ${potenciaW.toFixed(2)} W\n` +
+                    `Densidad Energía Estimada    : ${densEnergia.toFixed(1)} Wh/L\n` +
+                    `Eficiencia Coulómbica (ηC)   : ${effCoulomb.toFixed(1)} %`;
+            }
+
+            puntoEnPolilinea(pts, frac) {
+                frac = Math.max(0.0, Math.min(1.0, frac));
+                let longitudes = [];
+                let total = 0.0;
+                for(let i=0; i<pts.length-1; i++) {
+                    let d = Math.hypot(pts[i+1][0] - pts[i][0], pts[i+1][1] - pts[i][1]);
+                    longitudes.push(d);
+                    total += d;
+                }
+                let objetivo = frac * total;
+                for(let i=0; i<longitudes.length; i++) {
+                    let seg = longitudes[i];
+                    if(objetivo <= seg || i === longitudes.length - 1) {
+                        let t = seg === 0 ? 0 : objetivo / seg;
+                        let x = pts[i][0] + (pts[i+1][0] - pts[i][0]) * t;
+                        let y = pts[i][1] + (pts[i+1][1] - pts[i][1]) * t;
+                        return [x, y];
+                    }
+                    objetivo -= seg;
+                }
+                return pts[0];
+            }
+
+            draw() {
+                let W = this.canvas.width;
+                let H = this.canvas.height;
+                let ctx = this.ctx;
+
+                ctx.clearRect(0, 0, W, H);
+
+                let H_esq = Math.floor(H * 0.69);
+                let activoMode = this.getActiveMode();
+                let bombasActivas = activoMode === "CHARGE" || activoMode === "DISCHARGE";
+                let [hexCat, hexAno] = this.getElectrolyteColors();
+
+                ctx.strokeStyle = "#0f172a";
+                ctx.lineWidth = 1;
+                for(let gx=0; gx<W; gx+=32) {
+                    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H_esq); ctx.stroke();
+                }
+                for(let gy=0; gy<H_esq; gy+=32) {
+                    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+                }
+
+                let pms_w = W * 0.32, pms_h = H_esq * 0.15;
+                let pms_x = (W - pms_w) * 0.47, pms_y = H_esq * 0.06;
+
+                let bms_w = W * 0.17, bms_h = H_esq * 0.13;
+                let bms_x = W * 0.80, bms_y = H_esq * 0.16;
+
+                let cell_w = W * 0.27, cell_h = H_esq * 0.43;
+                let cell_x = pms_x + (pms_w - cell_w) / 2;
+                let cell_y = H_esq * 0.33;
+
+                let tank_w = W * 0.18, tank_h = H_esq * 0.41;
+                let ltank_x = W * 0.055, rtank_x = W * 0.725;
+                let tank_y = H_esq * 0.35;
+
+                let pump_y = H_esq * 0.885;
+                let lpump_x = ltank_x + tank_w * 0.5;
+                let rpump_x = rtank_x + tank_w * 0.5;
+                let pump_r = Math.min(W, H_esq) * 0.042;
+
+                let col_w = cell_w * 0.11;
+                let mem_w = Math.max(8, cell_w * 0.045);
+                let comp_w = (cell_w - 2 * col_w - mem_w) / 2;
+
+                let lcomp_cx = cell_x + col_w + comp_w * 0.5;
+                let rcomp_cx = cell_x + col_w + comp_w + mem_w + comp_w * 0.5;
+
+                let pipe_l_bot = [[lpump_x, tank_y + tank_h], [lpump_x, pump_y], [lcomp_cx, pump_y], [lcomp_cx, cell_y + cell_h]];
+                let pipe_l_top = [[lcomp_cx, cell_y], [lcomp_cx, H_esq * 0.25], [lpump_x, H_esq * 0.25], [lpump_x, tank_y]];
+                let pipe_r_bot = [[rpump_x, tank_y + tank_h], [rpump_x, pump_y], [rcomp_cx, pump_y], [rcomp_cx, cell_y + cell_h]];
+                let pipe_r_top = [[rcomp_cx, cell_y], [rcomp_cx, H_esq * 0.25], [rpump_x, H_esq * 0.25], [rpump_x, tank_y]];
+
+                const dibujarTuberias = (pts, colorHex) => {
+                    ctx.lineCap = "round"; ctx.lineJoin = "round";
+                    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+                    for(let i=1; i<pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+                    ctx.strokeStyle = "#334155"; ctx.lineWidth = 13; ctx.stroke();
+
+                    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+                    for(let i=1; i<pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+                    ctx.strokeStyle = colorHex; ctx.lineWidth = 8; ctx.stroke();
+
+                    if(bombasActivas) {
+                        for(let k=0; k<6; k++) {
+                            let frac = (this.anim_phase + k / 6.0) % 1.0;
+                            let [px, py] = this.puntoEnPolilinea(pts, frac);
+                            ctx.fillStyle = "#f8fafc";
+                            ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI*2); ctx.fill();
+                        }
+                    }
+                };
+
+                dibujarTuberias(pipe_l_bot, hexCat);
+                dibujarTuberias(pipe_l_top, hexCat);
+                dibujarTuberias(pipe_r_bot, hexAno);
+                dibujarTuberias(pipe_r_top, hexAno);
+
+                let capMaxTanque = Math.max(200.0, this.vol_catolito, this.vol_anolito);
+                this.drawTank(ltank_x, tank_y, tank_w, tank_h, hexCat, this.deg_cat, this.vol_catolito, capMaxTanque, "TANQUE CATOLITO (+)", "Lignina / Quinona", `Q / QH₂ (${Math.round(this.soc)}%)`, bombasActivas);
+                this.drawTank(rtank_x, tank_y, tank_w, tank_h, hexAno, this.deg_ano, this.vol_anolito, capMaxTanque, "TANQUE ANOLITO (-)", "Antraquinona (AQDS)", `AQDSH₂ (${Math.round(this.soc)}%)`, bombasActivas);
+
+                const drawPump = (px, nombre) => {
+                    let colorBorde = bombasActivas ? "#10b981" : "#475569";
+                    ctx.fillStyle = "#0f172a"; ctx.strokeStyle = colorBorde; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.arc(px, pump_y, pump_r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+                    let rad = (this.pump_angle * Math.PI) / 180.0;
+                    ctx.lineWidth = 3;
+                    for(let b=0; b<4; b++) {
+                        let ang = rad + b * (Math.PI / 2);
+                        ctx.strokeStyle = bombasActivas ? "#34d399" : "#64748b";
+                        ctx.beginPath(); ctx.moveTo(px, pump_y);
+                        ctx.lineTo(px + Math.cos(ang) * pump_r * 0.72, pump_y + Math.sin(ang) * pump_r * 0.72);
+                        ctx.stroke();
+                    }
+                    ctx.fillStyle = colorBorde;
+                    ctx.beginPath(); ctx.arc(px, pump_y, 5, 0, Math.PI*2); ctx.fill();
+
+                    ctx.fillStyle = bombasActivas ? "#6ee7b7" : "#94a3b8";
+                    ctx.font = "bold 11px Inter, sans-serif";
+                    ctx.textAlign = "left";
+                    ctx.fillText(nombre, px + pump_r + 8, pump_y - 4);
+                    ctx.fillStyle = "#cbd5e1";
+                    ctx.font = "10px Fira Code, monospace";
+                    ctx.fillText(bombasActivas ? `ON (${Math.round(this.flow_rate)} mL/m)` : "APAGADA", px + pump_r + 8, pump_y + 10);
+                };
+
+                drawPump(lpump_x, "Bomba Catolito");
+                drawPump(rpump_x, "Bomba Anolito");
+
+                let lcol_x = cell_x;
+                let lcomp_x = lcol_x + col_w;
+                let mem_x = lcomp_x + comp_w;
+                let rcomp_x = mem_x + mem_w;
+                let rcol_x = rcomp_x + comp_w;
+
+                ctx.fillStyle = hexCat; ctx.strokeStyle = "#334155";
+                ctx.fillRect(lcomp_x, cell_y, comp_w, cell_h); ctx.strokeRect(lcomp_x, cell_y, comp_w, cell_h);
+                ctx.fillStyle = hexAno;
+                ctx.fillRect(rcomp_x, cell_y, comp_w, cell_h); ctx.strokeRect(rcomp_x, cell_y, comp_w, cell_h);
+
+                ctx.fillStyle = "#0f172a";
+                for(let fy=cell_y+14; fy<cell_y+cell_h-10; fy+=18) {
+                    for(let fx=lcomp_x+10; fx<lcomp_x+comp_w-8; fx+=18) {
+                        ctx.fillRect(fx, fy, 3, 3);
+                    }
+                    for(let fx=rcomp_x+10; fx<rcomp_x+comp_w-8; fx+=18) {
+                        ctx.fillRect(fx, fy, 3, 3);
+                    }
+                }
+
+                ctx.fillStyle = "#ea580c"; ctx.strokeStyle = "#fdba74"; ctx.lineWidth = 2;
+                ctx.fillRect(lcol_x, cell_y - 4, col_w, cell_h + 8); ctx.strokeRect(lcol_x, cell_y - 4, col_w, cell_h + 8);
+                ctx.fillRect(rcol_x, cell_y - 4, col_w, cell_h + 8); ctx.strokeRect(rcol_x, cell_y - 4, col_w, cell_h + 8);
+
+                ctx.fillStyle = "white"; ctx.font = "bold 13px Fira Code, monospace"; ctx.textAlign = "center";
+                ctx.fillText("+", lcol_x + col_w/2, cell_y + 18);
+                ctx.fillText("−", rcol_x + col_w/2, cell_y + 18);
+                ctx.font = "bold 10px Fira Code, monospace";
+                ctx.fillStyle = "#fef08a";
+                ctx.fillText("e⁻", lcol_x + col_w/2, cell_y + cell_h * 0.55);
+                ctx.fillText("e⁻", rcol_x + col_w/2, cell_y + cell_h * 0.55);
+
+                ctx.fillStyle = "#fde047"; ctx.strokeStyle = "#ca8a04"; ctx.lineWidth = 1;
+                ctx.fillRect(mem_x, cell_y - 6, mem_w, cell_h + 12); ctx.strokeRect(mem_x, cell_y - 6, mem_w, cell_h + 12);
+
+                ctx.fillStyle = "#f8fafc"; ctx.font = "bold 11px Inter, sans-serif";
+                ctx.fillText("RFcell (Stack Electroquímico)", cell_x + cell_w/2, cell_y - 12);
+
+                ctx.fillStyle = "white"; ctx.font = "bold 10px Fira Code, monospace";
+                ctx.fillText("QH₂ ⇌ Q", lcomp_x + comp_w/2, cell_y + 26);
+                ctx.fillText("AQDS ⇌ AQDSH₂", rcomp_x + comp_w/2, cell_y + 26);
+
+                let memCx = mem_x + mem_w / 2;
+                [0.25, 0.45, 0.65, 0.82].forEach((yFrac, idx) => {
+                    let py = cell_y + cell_h * yFrac;
+                    let despX = 0.0;
+                    if(activoMode === "CHARGE") {
+                        let f = (this.anim_phase + idx * 0.25) % 1.0;
+                        despX = (f - 0.5) * (comp_w * 0.85);
+                    } else if(activoMode === "DISCHARGE") {
+                        let f = (this.anim_phase + idx * 0.25) % 1.0;
+                        despX = (0.5 - f) * (comp_w * 0.85);
+                    }
+                    ctx.strokeStyle = "#94a3b8"; ctx.setLineDash([2, 2]);
+                    ctx.beginPath(); ctx.moveTo(memCx - 22, py); ctx.lineTo(memCx + 22, py); ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    ctx.fillStyle = "white"; ctx.strokeStyle = "#0284c7"; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(memCx + despX, py, 8, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+                    ctx.fillStyle = "#0f172a"; ctx.font = "bold 9px Fira Code, monospace"; ctx.textAlign = "center";
+                    ctx.fillText("H+", memCx + despX, py + 3);
+                });
+
+                ctx.fillStyle = "#fde047"; ctx.font = "bold 10px Inter, sans-serif";
+                ctx.fillText("Membrana de Intercambio Iónico + Electrodos de Fieltro de Carbono", cell_x + cell_w/2, cell_y + cell_h + 18);
+
+                let lwire_x = lcol_x + col_w / 2;
+                let rwire_x = rcol_x + col_w / 2;
+                let wire_l = [[lwire_x, cell_y - 4], [lwire_x, pms_y + pms_h * 0.5], [pms_x, pms_y + pms_h * 0.5]];
+                let wire_r = [[pms_x + pms_w, pms_y + pms_h * 0.5], [rwire_x, pms_y + pms_h * 0.5], [rwire_x, cell_y - 4]];
+
+                const dibujarCable = (pts, color) => {
+                    ctx.strokeStyle = color; ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+                    for(let i=1; i<pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+                    ctx.stroke();
+                };
+
+                dibujarCable(wire_l, "#f97316");
+                dibujarCable(wire_r, "#38bdf8");
+
+                if(bombasActivas) {
+                    let circuitoTotal = wire_l.concat(wire_r);
+                    for(let k=0; k<10; k++) {
+                        let frac = (this.anim_phase + k / 10.0) % 1.0;
+                        if(activoMode === "DISCHARGE") frac = 1.0 - frac;
+                        let [ex, ey] = this.puntoEnPolilinea(circuitoTotal, frac);
+                        ctx.fillStyle = "#fde047"; ctx.strokeStyle = "#ca8a04"; ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+                    }
+                }
+
+                let bordePms = activoMode === "CHARGE" ? "#10b981" : (activoMode === "DISCHARGE" ? "#f59e0b" : "#64748b");
+                ctx.fillStyle = "#1e293b"; ctx.strokeStyle = bordePms; ctx.lineWidth = 2;
+                ctx.fillRect(pms_x, pms_y, pms_w, pms_h); ctx.strokeRect(pms_x, pms_y, pms_w, pms_h);
+
+                ctx.fillStyle = "#fbbf24"; ctx.font = "bold 11px Inter, sans-serif"; ctx.textAlign = "center";
+                ctx.fillText("PMS (Convertidor Bidireccional DC/AC)", pms_x + pms_w/2, pms_y + pms_h * 0.32);
+                let potW = activoMode === "IDLE" ? 0.0 : this.voltage * this.current_amp;
+                ctx.fillStyle = "#f8fafc"; ctx.font = "bold 11px Fira Code, monospace";
+                ctx.fillText(`V = ${this.voltage.toFixed(3)} V  |  P = ${potW.toFixed(2)} W`, pms_x + pms_w/2, pms_y + pms_h * 0.62);
+                let txtFlujoE = activoMode === "CHARGE" ? "⚡ Conector: CARGANDO BATERÍA (e⁻ ➔)" : (activoMode === "DISCHARGE" ? "💡 Conector: DESCARGANDO (⬅ e⁻)" : "🔌 Conector: ABIERTO (EN ESPERA)");
+                ctx.fillStyle = activoMode === "CHARGE" ? "#34d399" : (activoMode === "DISCHARGE" ? "#fcd34d" : "#94a3b8");
+                ctx.font = "bold 10px Inter, sans-serif";
+                ctx.fillText(txtFlujoE, pms_x + pms_w/2, pms_y + pms_h * 0.86);
+
+                ctx.fillStyle = "#1e293b"; ctx.strokeStyle = "#eab308"; ctx.lineWidth = 2;
+                ctx.fillRect(bms_x, bms_y, bms_w, bms_h); ctx.strokeRect(bms_x, bms_y, bms_w, bms_h);
+                ctx.fillStyle = "#fde047"; ctx.font = "bold 11px Inter, sans-serif"; ctx.textAlign = "center";
+                ctx.fillText("BMS (Supervisor)", bms_x + bms_w/2, bms_y + bms_h * 0.32);
+                ctx.fillStyle = "#cbd5e1"; ctx.font = "bold 10px Fira Code, monospace";
+                ctx.fillText(`SoC: ${this.soc.toFixed(1)}%`, bms_x + bms_w/2, bms_y + bms_h * 0.60);
+                ctx.fillStyle = "#34d399";
+                ctx.fillText(`Ciclo: ${this.cycles}/50`, bms_x + bms_w/2, bms_y + bms_h * 0.83);
+
+                let gTop = H_esq + 8;
+                let gBot = H - 8;
+                let gMidX = Math.floor(W / 2);
+
+                this.drawGraphVoltage(14, gTop, gMidX - 8, gBot);
+                this.drawGraphCycles(gMidX + 8, gTop, W - 14, gBot);
+            }
+
+            drawTank(tx, ty, tw, th, colorLiq, degPct, volLitros, capMaxTanque, titulo, subtitulo, especieTxt, activo) {
+                let ctx = this.ctx;
+                ctx.fillStyle = "#0f172a"; ctx.strokeStyle = "#64748b"; ctx.lineWidth = 2;
+                ctx.fillRect(tx, ty, tw, th); ctx.strokeRect(tx, ty, tw, th);
+
+                let pctLlenado = (volLitros / capMaxTanque) * 100.0;
+                let fracNivel = Math.max(0.08, Math.min(0.88, (volLitros / capMaxTanque) * 0.85));
+                let liqTopY = ty + th * (1.0 - fracNivel);
+
+                ctx.fillStyle = colorLiq;
+                ctx.fillRect(tx + 3, liqTopY, tw - 6, th * fracNivel - 3);
+
+                ctx.strokeStyle = "#f8fafc"; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(tx + 3, liqTopY + 6);
+                for(let wx=0; wx<tw-6; wx+=12) {
+                    let wy = liqTopY + Math.sin((wx / 16.0) + (this.pump_angle * Math.PI / 180.0) * 2) * (activo ? 3.0 : 1.0);
+                    ctx.lineTo(tx + 3 + wx, wy);
+                }
+                ctx.lineTo(tx + tw - 3, liqTopY + 6);
+                ctx.stroke();
+
+                if(degPct > 0.4) {
+                    let numPart = Math.min(this.precip_seeds.length, Math.floor(degPct * 0.8) + 1);
+                    ctx.fillStyle = "#1c1917";
+                    for(let i=0; i<numPart; i++) {
+                        let [sx, sy, sr] = this.precip_seeds[i];
+                        let px = tx + 8 + sx * (tw - 16);
+                        let despY = (sy + (activo ? this.anim_phase * 0.5 : 0.0)) % 0.85;
+                        let py = liqTopY + 8 + despY * Math.max(10.0, (th * fracNivel) - 16);
+                        ctx.beginPath(); ctx.arc(px, py, sr, 0, Math.PI*2); ctx.fill();
+                    }
+                }
+
+                ctx.fillStyle = "#94a3b8"; ctx.font = "8px Fira Code, monospace"; ctx.textAlign = "right";
+                for(let m=1; m<=4; m++) {
+                    let my = ty + th - (m * th * 0.21);
+                    let marcaL = Math.round((m / 4.0) * capMaxTanque);
+                    ctx.fillRect(tx + tw - 10, my, 8, 1);
+                    ctx.fillText(`${marcaL}L`, tx + tw - 12, my + 3);
+                }
+
+                ctx.fillStyle = "#f8fafc"; ctx.font = "bold 10px Inter, sans-serif"; ctx.textAlign = "center";
+                ctx.fillText(titulo, tx + tw/2, ty + 16);
+                ctx.fillStyle = "#38bdf8"; ctx.font = "bold 10px Fira Code, monospace";
+                ctx.fillText(`Total: ${volLitros.toFixed(1)} L (${Math.round(pctLlenado)}%)`, tx + tw/2, ty + 30);
+                ctx.fillStyle = "white"; ctx.font = "bold 11px Fira Code, monospace";
+                ctx.fillText(especieTxt, tx + tw/2, ty + th * 0.54);
+                ctx.fillStyle = "#e2e8f0"; ctx.font = "9px Inter, sans-serif";
+                ctx.fillText(subtitulo, tx + tw/2, ty + th * 0.66);
+
+                ctx.fillStyle = "#090d16"; ctx.strokeStyle = "#334155"; ctx.lineWidth = 1;
+                ctx.fillRect(tx + 8, ty + th - 24, tw - 16, 18); ctx.strokeRect(tx + 8, ty + th - 24, tw - 16, 18);
+                ctx.fillStyle = degPct > 15 ? "#fda4af" : "#6ee7b7";
+                ctx.font = "bold 10px Fira Code, monospace";
+                ctx.fillText(`Degradación: ${degPct.toFixed(1)}%`, tx + tw/2, ty + th - 11);
+            }
+
+            drawGraphVoltage(x1, y1, x2, y2) {
+                let ctx = this.ctx;
+                ctx.fillStyle = "#0b1324"; ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 1;
+                ctx.fillRect(x1, y1, x2 - x1, y2 - y1); ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+
+                ctx.fillStyle = "#38bdf8"; ctx.font = "bold 10px Inter, sans-serif"; ctx.textAlign = "left";
+                ctx.fillText("Curva en Tiempo Real: Voltaje de Celda (V) y SoC (%)", x1 + 10, y1 + 14);
+
+                let padL = 42, padR = 36, padT = 26, padB = 20;
+                let pw = Math.max(50, (x2 - x1) - padL - padR);
+                let ph = Math.max(40, (y2 - y1) - padT - padB);
+                let gx0 = x1 + padL, gy0 = y1 + padT;
+
+                ctx.font = "9px Fira Code, monospace";
+                for(let i=0; i<5; i++) {
+                    let vRef = 1.6 - i * 0.25;
+                    let yy = gy0 + (i / 4.0) * ph;
+                    ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.moveTo(gx0, yy); ctx.lineTo(gx0 + pw, yy); ctx.stroke();
+                    ctx.fillStyle = "#38bdf8"; ctx.textAlign = "right";
+                    ctx.fillText(`${vRef.toFixed(2)}V`, gx0 - 4, yy + 3);
+                    ctx.fillStyle = "#34d399"; ctx.textAlign = "left";
+                    ctx.fillText(`${100 - i*25}%`, gx0 + pw + 4, yy + 3);
+                }
+
+                if(this.time_history.length < 2) return;
+
+                let nMax = Math.max(2, this.max_time_pts - 1);
+                
+                ctx.strokeStyle = "#10b981"; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                this.time_history.forEach((item, idx) => {
+                    let px = gx0 + (idx / nMax) * pw;
+                    let py = gy0 + (1.0 - item["soc"] / 100.0) * ph;
+                    py = Math.max(gy0, Math.min(gy0 + ph, py));
+                    if(idx === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                });
+                ctx.stroke(); ctx.setLineDash([]);
+
+                ctx.strokeStyle = "#22d3ee"; ctx.lineWidth = 2;
+                ctx.beginPath();
+                this.time_history.forEach((item, idx) => {
+                    let px = gx0 + (idx / nMax) * pw;
+                    let py = gy0 + (1.0 - (item["v"] - 0.6) / 1.0) * ph;
+                    py = Math.max(gy0, Math.min(gy0 + ph, py));
+                    if(idx === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                });
+                ctx.stroke();
+            }
+
+            drawGraphCycles(x1, y1, x2, y2) {
+                let ctx = this.ctx;
+                ctx.fillStyle = "#0b1324"; ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 1;
+                ctx.fillRect(x1, y1, x2 - x1, y2 - y1); ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+
+                ctx.fillStyle = "#34d399"; ctx.font = "bold 10px Inter, sans-serif"; ctx.textAlign = "left";
+                ctx.fillText("Fase 3 y 4: Retención de Capacidad (%) vs 50 Ciclos", x1 + 10, y1 + 14);
+
+                let padL = 42, padR = 16, padT = 26, padB = 20;
+                let pw = Math.max(50, (x2 - x1) - padL - padR);
+                let ph = Math.max(40, (y2 - y1) - padT - padB);
+                let gx0 = x1 + padL, gy0 = y1 + padT;
+
+                ctx.font = "9px Fira Code, monospace";
+                for(let i=0; i<5; i++) {
+                    let pct = 100 - i * 20;
+                    let yy = gy0 + (i / 4.0) * ph;
+                    ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.moveTo(gx0, yy); ctx.lineTo(gx0 + pw, yy); ctx.stroke();
+                    ctx.fillStyle = "#94a3b8"; ctx.textAlign = "right";
+                    ctx.fillText(`${pct}%`, gx0 - 4, yy + 3);
+                }
+
+                let y75 = gy0 + ((100.0 - 75.0) / 80.0) * ph;
+                ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+                ctx.beginPath(); ctx.moveTo(gx0, y75); ctx.lineTo(gx0 + pw, y75); ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = "#fbbf24"; ctx.textAlign = "right"; ctx.font = "8px Fira Code, monospace";
+                ctx.fillText("Meta Hipótesis (>75%)", gx0 + pw - 4, y75 - 5);
+
+                let ptsRet = [];
+                let ptsEff = [];
+                this.cycle_history.forEach(([cyc, ret, eff]) => {
+                    let px = gx0 + (cyc / 50.0) * pw;
+                    let pyR = gy0 + ((100.0 - Math.max(20.0, ret)) / 80.0) * ph;
+                    let pyE = gy0 + ((100.0 - Math.max(20.0, eff)) / 80.0) * ph;
+                    ptsRet.push([px, pyR]);
+                    ptsEff.push([px, pyE]);
+
+                    ctx.fillStyle = "#10b981";
+                    ctx.beginPath(); ctx.arc(px, pyR, 2.5, 0, Math.PI*2); ctx.fill();
+                });
+
+                if(ptsRet.length >= 2) {
+                    ctx.strokeStyle = "#10b981"; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(ptsRet[0][0], ptsRet[0][1]);
+                    for(let i=1; i<ptsRet.length; i++) ctx.lineTo(ptsRet[i][0], ptsRet[i][1]);
+                    ctx.stroke();
+                }
+
+                if(ptsEff.length >= 2) {
+                    ctx.strokeStyle = "#38bdf8"; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(ptsEff[0][0], ptsEff[0][1]);
+                    for(let i=1; i<ptsEff.length; i++) ctx.lineTo(ptsEff[i][0], ptsEff[i][1]);
+                    ctx.stroke();
+                }
+            }
+
+            startLoop() {
+                // Initial resize and draw to prevent blank frame
+                this.resizeCanvas();
+                this.updateUI();
+                this.draw();
+
+                const loop = () => {
+                    this.stepPhysics();
+                    this.updateUI();
+                    this.draw();
+                    requestAnimationFrame(loop);
+                };
+                requestAnimationFrame(loop);
+            }
+        }
+
+        window.onload = () => {
+            window.app = new SimuladorBateriaRedoxOrg();
+            setTimeout(() => {
+                if(window.app) window.app.resizeCanvas();
+            }, 100);
+        };
+    </script>
+</body>
+</html>
